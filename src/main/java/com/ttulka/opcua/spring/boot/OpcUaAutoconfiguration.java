@@ -1,0 +1,15 @@
+package com.ttulka.opcua.spring.boot;
+
+import com.ttulka.opcua.spring.boot.milo.MiloServerAutoconfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
+@Configuration
+@ConditionalOnProperty(value = "spring.opcua.server.enabled", havingValue = "true", matchIfMissing = true)
+@EnableConfigurationProperties(OpcUaServerProperties.class)
+@Import(MiloServerAutoconfiguration.class)
+public class OpcUaAutoconfiguration {
+
+}

@@ -1,0 +1,4 @@
+spring.opcua.server:
+  product-uri: urn:basic:opcua
+  application-name: Basic OPC UA Server
+  

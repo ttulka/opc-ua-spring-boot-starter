@@ -1,0 +1,4 @@
+spring.opcua.server:
+  product-uri: urn:basic:opcua
+  application-name: HTTPS OPC UA Server
+  https.enabled: true

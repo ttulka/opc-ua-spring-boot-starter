@@ -1,0 +1,8 @@
+spring.opcua.server:
+  product-uri: urn:basic:opcua
+  application-name: Sign & Encrypt Auth OPC UA Server
+  https.enabled: true
+  authentication.token-policies: username
+  security:
+    policy: Basic256Sha256
+    mode: SignAndEncrypt

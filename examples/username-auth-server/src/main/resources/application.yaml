@@ -1,0 +1,5 @@
+spring.opcua.server:
+  product-uri: urn:basic:opcua
+  application-name: Username Auth OPC UA Server
+  https.enabled: true
+  authentication.token-policies: username
