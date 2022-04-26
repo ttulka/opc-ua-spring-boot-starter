@@ -76,7 +76,7 @@ class MyOpcUaServerConfig {
 
 ## Namespaces
 
-## Eclipse Milo
+### Eclipse Milo
 
 Start namespaces simply by registering Spring beans of type `org.eclipse.milo.opcua.sdk.server.api.ManagedNamespaceWithLifecycle`:
 
