@@ -5,6 +5,7 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.DateTime;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @ConfigurationProperties(prefix = "spring.opcua.server")
@@ -16,8 +17,8 @@ public class OpcUaServerProperties {
     public enum SecurityPolicy { None, Basic128Rsa15, Basic256Sha256 }
     public enum SecurityMode { None, Sign, SignAndEncrypt }
 
-    private String productUri;
-    private String applicationName;
+    private String productUri = "urn:spring:opcua";
+    private String applicationName = "Spring OPC UA Server";
 
     private String path = "/";
     private String discoveryPath = "/discovery";
@@ -59,7 +60,7 @@ public class OpcUaServerProperties {
     @Data
     public static class AuthenticationProperties {
 
-        private List<TokenPolicy> tokenPolicies = new ArrayList<>();
+        private List<TokenPolicy> tokenPolicies = new ArrayList<>(Arrays.asList(TokenPolicy.anonymous));
     }
 
     @Data
@@ -75,7 +76,7 @@ public class OpcUaServerProperties {
         private String type = "PKCS12";
         private String serverAlias = "server-opcua";
         private String httpsAlias = "server-https";
-        private String password = "pass123";
+        private String password = "changeit";
         private boolean generate = true;
     }
 

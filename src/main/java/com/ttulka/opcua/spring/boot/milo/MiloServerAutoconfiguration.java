@@ -1,9 +1,15 @@
 package com.ttulka.opcua.spring.boot.milo;
 
 import com.ttulka.opcua.spring.boot.OpcUaServerProperties;
+import com.ttulka.opcua.spring.boot.auth.Authenticator;
+import com.ttulka.opcua.spring.boot.auth.UsernameAuthenticator;
+import com.ttulka.opcua.spring.boot.auth.X509Authenticator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.milo.opcua.sdk.server.OpcUaServer;
+import org.eclipse.milo.opcua.sdk.server.api.ManagedNamespaceWithLifecycle;
+import org.eclipse.milo.opcua.sdk.server.api.Namespace;
 import org.eclipse.milo.opcua.sdk.server.api.config.OpcUaServerConfig;
 import org.eclipse.milo.opcua.sdk.server.api.config.OpcUaServerConfigBuilder;
 import org.eclipse.milo.opcua.sdk.server.identity.*;
@@ -26,6 +32,7 @@ import org.eclipse.milo.opcua.stack.server.security.DefaultServerCertificateVali
 import org.eclipse.milo.opcua.stack.server.security.ServerCertificateValidator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -34,9 +41,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -49,13 +56,15 @@ import static org.eclipse.milo.opcua.sdk.server.api.config.OpcUaServerConfig.*;
 @Configuration
 @ConditionalOnClass(OpcUaServer.class)
 @RequiredArgsConstructor
+@Slf4j
 public class MiloServerAutoconfiguration {
 
     private final OpcUaServerProperties properties;
 
     @Bean
-    MiloServerStarter miloServerStarter(OpcUaServer opcUaServer) {
-        return new MiloServerStarter(opcUaServer);
+    @ConditionalOnProperty(value = "spring.opcua.server.autostart.enabled", havingValue = "true", matchIfMissing = true)
+    MiloServerStarter miloServerStarter(OpcUaServer opcUaServer, List<ManagedNamespaceWithLifecycle> namespaces) {
+        return new MiloServerStarter(opcUaServer, namespaces);
     }
 
     @Bean
@@ -79,29 +88,11 @@ public class MiloServerAutoconfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    AnonymousIdentityValidator anonymousIdentityValidator() {
-        return new AnonymousIdentityValidator();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    UsernameIdentityValidator usernameIdentityValidator() {
-        return new UsernameIdentityValidator(true, authChallenge -> true);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    X509IdentityValidator x509IdentityValidator() {
-        return new X509IdentityValidator(x509Certificate -> true);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     OpcUaServer opcUaServer(
             TrustListManager trustListManager,
             KeyStoreLoader keyStoreLoader,
             ServerCertificateValidator serverCertificateValidator,
-            List<IdentityValidator<?>> identityValidators) throws NoSuchAlgorithmException {
+            List<Authenticator<?>> authenticators) {
         X509Certificate serverCertificate = keyStoreLoader.getServerCertificate();
 
         String applicationUri = CertificateUtil
@@ -116,6 +107,7 @@ public class MiloServerAutoconfiguration {
                 .setCertificateManager(new DefaultCertificateManager(keyStoreLoader.getServerKeyPair(), keyStoreLoader.getServerCertificateChain()))
                 .setTrustListManager(trustListManager)
                 .setCertificateValidator(serverCertificateValidator)
+                .setIdentityValidator(identityValidators(authenticators, properties.getAuthentication().getTokenPolicies()))
                 .setBuildInfo(new BuildInfo(
                         properties.getBuildInfo().getProductUri(),
                         properties.getBuildInfo().getManufacturerName(),
@@ -123,12 +115,6 @@ public class MiloServerAutoconfiguration {
                         properties.getBuildInfo().getSoftwareVersion(),
                         properties.getBuildInfo().getBuildNumber(),
                         properties.getBuildInfo().getBuildDate()));
-
-        if (!identityValidators.isEmpty()) {
-            builder.setIdentityValidator(identityValidators.size() > 1
-                    ? new CompositeValidator(identityValidators)
-                    : identityValidators.get(0));
-        }
 
         if (properties.getHttps().isEnabled()) {
             X509Certificate httpsCertificate = keyStoreLoader.getHttpsCertificate();
@@ -191,6 +177,39 @@ public class MiloServerAutoconfiguration {
                 .setTransportProfile(fromHttps(properties.getHttps().getEncoding()))
                 .setBindPort(properties.getHttps().getPort())
                 .build();
+    }
+
+    private IdentityValidator<?> identityValidators(List<Authenticator<?>> authenticators, List<OpcUaServerProperties.TokenPolicy> tokenPolicies) {
+        if (!tokenPolicies.isEmpty()) {
+            List<IdentityValidator<?>> validators = new ArrayList<>();
+
+            boolean anonymousAllowed = tokenPolicies.contains(OpcUaServerProperties.TokenPolicy.anonymous);
+            if (anonymousAllowed) {
+                validators.add(new AnonymousIdentityValidator());
+            }
+
+            for (Authenticator<?> auth : authenticators) {
+                if (auth instanceof UsernameAuthenticator) {
+                    if (tokenPolicies.contains(OpcUaServerProperties.TokenPolicy.username)) {
+                        validators.add(new UsernameIdentityValidator(anonymousAllowed, challenge ->
+                                ((UsernameAuthenticator)auth).validateToken(new UsernameAuthenticator.Credentials(
+                                        challenge.getUsername(), challenge.getPassword()))));
+                    }
+                } else if (auth instanceof X509Authenticator) {
+                    if (tokenPolicies.contains(OpcUaServerProperties.TokenPolicy.x509)) {
+                        validators.add(new X509IdentityValidator(x509Certificate ->
+                                ((X509Authenticator)auth).validateToken(x509Certificate)));
+                    }
+                } else {
+                    log.warn("Unsupported Authenticator: {}", auth.getClass().getName());
+                }
+            }
+
+            if (!validators.isEmpty()) {
+                return validators.size() > 1 ? new CompositeValidator(validators) : validators.get(0);
+            }
+        }
+        return null;
     }
 
     private UserTokenPolicy[] from(List<OpcUaServerProperties.TokenPolicy> tokenPolicies) {
