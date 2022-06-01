@@ -10,6 +10,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -23,22 +24,24 @@ class MiloServerStarter {
     @PostConstruct
     @SneakyThrows
     void startServer() {
-        try {
-            for (ManagedNamespaceWithLifecycle namespace : namespaces) {
-                namespace.startup();
-                log.info("Namespace {} index {} started", namespace.getNamespaceUri(), namespace.getNamespaceIndex());
-            }
-
-            server.startup().get();
-            log.info("OPC UA Server started.");
-
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> future.complete(null)));
-            future.get();
-
-        } catch (Exception e) {
-            log.error("Cannot startup the OPC UA Server", e);
-            throw e;
+        for (ManagedNamespaceWithLifecycle namespace : namespaces) {
+            namespace.startup();
+            log.info("Namespace {} index {} started", namespace.getNamespaceUri(), namespace.getNamespaceIndex());
         }
+
+        new Thread(() -> {
+            try {
+                server.startup().get();
+                future.get();
+
+            } catch (Exception e) {
+                log.error("Cannot startup the OPC UA Server", e);
+                throw new RuntimeException(e);
+            }
+            log.info("OPC UA Server started.");
+        }).start();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> future.complete(null)));
     }
 
     @PreDestroy

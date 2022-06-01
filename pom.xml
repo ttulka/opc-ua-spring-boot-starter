@@ -5,7 +5,7 @@
 
 	<groupId>com.ttulka.opcua</groupId>
 	<artifactId>opc-ua-spring-boot-starter</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 
 	<name>opc-ua-spring-boot-starter</name>
 	<description>Spring Boot Starter for OPC UA Server</description>

@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'
-	implementation "com.ttulka.opcua:opc-ua-spring-boot-starter:0.0.1-SNAPSHOT"
+	implementation "com.ttulka.opcua:opc-ua-spring-boot-starter:0.0.2-SNAPSHOT"
 }
 
 tasks.named('test') {
