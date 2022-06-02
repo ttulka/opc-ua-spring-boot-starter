@@ -192,13 +192,13 @@ public class MiloServerAutoconfiguration {
                 if (auth instanceof UsernameAuthenticator) {
                     if (tokenPolicies.contains(OpcUaServerProperties.TokenPolicy.username)) {
                         validators.add(new UsernameIdentityValidator(anonymousAllowed, challenge ->
-                                ((UsernameAuthenticator)auth).validateToken(new UsernameAuthenticator.Credentials(
+                                ((UsernameAuthenticator) auth).validateToken(new UsernameAuthenticator.Credentials(
                                         challenge.getUsername(), challenge.getPassword()))));
                     }
                 } else if (auth instanceof X509Authenticator) {
                     if (tokenPolicies.contains(OpcUaServerProperties.TokenPolicy.x509)) {
                         validators.add(new X509IdentityValidator(x509Certificate ->
-                                ((X509Authenticator)auth).validateToken(x509Certificate)));
+                                ((X509Authenticator) auth).validateToken(x509Certificate)));
                     }
                 } else {
                     log.warn("Unsupported Authenticator: {}", auth.getClass().getName());
