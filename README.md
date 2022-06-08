@@ -9,7 +9,7 @@ Uses [Eclipse Milo](https://github.com/eclipse/milo) as the default implementati
 <dependency>
     <groupId>com.ttulka.opcua</groupId>
     <artifactId>opc-ua-spring-boot-starter</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
 </dependency>
 ```
 
