@@ -2,6 +2,8 @@
 
 Uses [Eclipse Milo](https://github.com/eclipse/milo) as the default implementation.
 
+> Currently it supports only Spring Boot 2 due to incompatible dependencies of Milo
+
 ## Getting Started
 
 ### Maven
@@ -9,13 +11,13 @@ Uses [Eclipse Milo](https://github.com/eclipse/milo) as the default implementati
 <dependency>
     <groupId>com.ttulka.opcua</groupId>
     <artifactId>opc-ua-spring-boot-starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.3</version>
 </dependency>
 ```
 
 ### Gradle
 ```groovy
-implementation "com.ttulka.opcua:opc-ua-spring-boot-starter:0.0.4"
+implementation "com.ttulka.opcua:opc-ua-spring-boot-starter:0.0.3"
 ```
 
 See [examples](https://github.com/ttulka/opc-ua-spring-boot-starter/blob/main/examples) of the usage.
